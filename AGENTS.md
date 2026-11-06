@@ -1,3 +1,11 @@
+# uk-carbon-map
+
+Interactive map of UK electricity regions showing when and where grid power is cleanest, and eventually cheapest. See README.md for setup.
+
+## Conventions
+- Run `npm run lint` and `npm run build` before calling work finished.
+- Only use a public `pk.` Mapbox token, and never commit `.env.local`.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
@@ -7,3 +15,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
