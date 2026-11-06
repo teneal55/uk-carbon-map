@@ -1,5 +1,7 @@
 # uk-carbon-map
 
+[![CI](https://github.com/teneal55/uk-carbon-map/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/<your-username>/uk-carbon-map/actions/workflows/ci.yml)
+
 An interactive map of the UK's electricity regions, showing when and where grid power is cleanest, and eventually cheapest.
 
 > **Status:** early work in progress. The Next.js app and base map are set up; data layers are coming next.
@@ -43,6 +45,19 @@ Then start the dev server:
 ```bash
 npm run dev
 ```
+
+## Testing and CI
+
+Unit and component tests use [Vitest](https://vitest.dev) and [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/).
+
+```bash
+npm test             # run all tests once
+npm run test:watch   # re-run tests on save
+npm run lint         # ESLint
+npm run typecheck    # generate Next.js route types, then type check
+```
+
+Every pull request and every push to `main` runs these checks in [GitHub Actions](.github/workflows/ci.yml): lint, type check, then tests. `main` is protected, so a PR can only be merged once CI passes.
 
 ## Deployment
 
