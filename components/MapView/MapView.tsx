@@ -1,8 +1,28 @@
 'use client';
 
 import Map, { Layer, NavigationControl, Source } from 'react-map-gl/mapbox';
-import type { LngLatBoundsLike } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import type { LngLatBoundsLike, FillLayerSpecification, LineLayerSpecification } from 'mapbox-gl';
+
+const regionFill: FillLayerSpecification = {
+  id: 'regions-fill',
+  type: 'fill',
+  source: 'regions',
+  paint: {
+    'fill-color': '#9ca3af',
+    'fill-opacity': 0.9,
+  },
+};
+
+const regionOutline: LineLayerSpecification = {
+  id: 'regions-outline',
+  type: 'line',
+  source: 'regions',
+  paint: {
+    'line-color': '#ffffff',
+    'line-width': 1,
+  },
+};
 
 // Constants
 const INITIAL_ZOOM = 4.6;
@@ -29,6 +49,10 @@ export default function MapView() {
           type="fill"
           paint={{ 'fill-color': '#6b7280', 'fill-opacity': 0.6 }}
         />
+      </Source>
+      <Source id="regions" type="geojson" data="/regions.geojson" promoteId="region_id">
+        <Layer {...regionFill} />
+        <Layer {...regionOutline} />
       </Source>
       <NavigationControl position="top-right" showCompass={false} />
     </Map>
