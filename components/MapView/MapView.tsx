@@ -1,36 +1,124 @@
 'use client';
 
-import Map, { Layer, NavigationControl, Source } from 'react-map-gl/mapbox';
-import type { LngLatBoundsLike } from 'mapbox-gl';
+import Map, { Layer, Source, type MapEvent } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import type {
+  FillLayerSpecification,
+  LineLayerSpecification,
+  LngLatBoundsLike,
+  PaddingOptions,
+} from 'mapbox-gl';
+
+// Colours inspired by Octopus Energy's dark purple and pink look. These are
+// approximations, not official brand values.
+const COLOURS = {
+  backdrop: '#180048', // deep purple: sea and everything outside the UK
+  region: '#5b3fb4', // mid purple: region fill until data colours arrive
+  border: '#ff71cf', // bubblegum pink: region outlines
+  noData: '#34246e', // muted purple: UK land with no grid data (Northern Ireland)
+};
+
+// Northern Ireland is part of the UK but runs on a separate grid, so there's no
+// carbon data for it. Draw it like the rest of the UK, but in a neutral colour
+// and outside the regions source so data styling never applies to it.
+const northernIrelandFill: FillLayerSpecification = {
+  id: 'northern-ireland-fill',
+  type: 'fill',
+  source: 'northern-ireland',
+  paint: {
+    'fill-color': COLOURS.noData,
+    'fill-opacity': 0.9,
+  },
+};
+
+const northernIrelandOutline: LineLayerSpecification = {
+  id: 'northern-ireland-outline',
+  type: 'line',
+  source: 'northern-ireland',
+  paint: {
+    'line-color': COLOURS.border,
+    'line-width': 1.2,
+  },
+};
+
+const regionFill: FillLayerSpecification = {
+  id: 'regions-fill',
+  type: 'fill',
+  source: 'regions',
+  paint: {
+    'fill-color': COLOURS.region,
+    'fill-opacity': 0.9,
+  },
+};
+
+const regionOutline: LineLayerSpecification = {
+  id: 'regions-outline',
+  type: 'line',
+  source: 'regions',
+  paint: {
+    'line-color': COLOURS.border,
+    'line-width': 1.2,
+  },
+};
 
 // Constants
-const INITIAL_ZOOM = 4.6;
-// TODO: maxBounds raises the minimum zoom based on the width of these bounds, so
-// on wide screens scrolling may jump the map in (about zoom 6.6 at 1440px) and
-// the whole UK may not fit. Wider bounds would fix this, but allow panning
-// further from the UK when zoomed in.
-const UK_BOUNDS: LngLatBoundsLike = [-8.7, 49.9, 1.8, 60.9]
+const UK_BOUNDS: LngLatBoundsLike = [-8.7, 49.9, 1.8, 60.9];
+const UK_PADDING_PX = 60; // space between the UK and the screen edges
+const OCEAN_SHARE = 0.4; // share of a landscape screen kept as ocean on the left
 
+// Space to leave around the UK. On landscape screens a wide left margin pushes
+// the UK to the right, leaving ocean on the left. Portrait screens are too
+// narrow for that, so the UK stays centred.
+function ukPadding(width: number, height: number): PaddingOptions {
+  const left = width > height ? Math.max(UK_PADDING_PX, width * OCEAN_SHARE) : UK_PADDING_PX;
+  return { top: UK_PADDING_PX, bottom: UK_PADDING_PX, right: UK_PADDING_PX, left };
+}
+
+// The map can't be moved, so refit the UK whenever the screen size changes.
+function fitUk(e: MapEvent) {
+  const map = e.target;
+  const { clientWidth, clientHeight } = map.getContainer();
+  map.fitBounds(UK_BOUNDS, { padding: ukPadding(clientWidth, clientHeight), animate: false });
+}
 
 export default function MapView() {
   return (
     <Map
-      initialViewState={{ longitude: -3.5, latitude: 55, zoom: INITIAL_ZOOM }}
-      maxBounds={UK_BOUNDS}
+      initialViewState={{ bounds: UK_BOUNDS, fitBoundsOptions: { padding: UK_PADDING_PX } }}
       mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
-      minZoom={INITIAL_ZOOM}
       style={{ width: '100%', height: '100vh' }}
       mapStyle={process.env.NEXT_PUBLIC_MAPBOX_STYLE}
+      onLoad={fitUk}
+      onResize={fitUk}
+      // Fixed view: turn off every way of panning, zooming or rotating.
+      scrollZoom={false}
+      dragPan={false}
+      dragRotate={false}
+      doubleClickZoom={false}
+      touchZoomRotate={false}
+      touchPitch={false}
+      boxZoom={false}
+      keyboard={false}
+      projection="mercator"
     >
-      <Source id="uk-mask" type="geojson" data="/uk-mask.geojson">
+      {/* Each Source has a key matching its id. react-map-gl can't change a
+          source's id, so without keys, adding or reordering sources during a
+          hot reload makes React reuse the wrong one ("source id changed"). */}
+      <Source key="uk-mask" id="uk-mask" type="geojson" data="/uk-mask.geojson">
         <Layer
           id="uk-mask-fill"
           type="fill"
-          paint={{ 'fill-color': '#6b7280', 'fill-opacity': 0.6 }}
+          paint={{ 'fill-color': COLOURS.backdrop, 'fill-opacity': 0.85 }}
         />
       </Source>
-      <NavigationControl position="top-right" showCompass={false} />
+      <Source key="northern-ireland" id="northern-ireland" type="geojson" data="/northern-ireland.geojson">
+        <Layer {...northernIrelandFill} />
+        <Layer {...northernIrelandOutline} />
+      </Source>
+      <Source key="regions" id="regions" type="geojson" data="/regions.geojson" promoteId="region_id">
+        <Layer {...regionFill} />
+        <Layer {...regionOutline} />
+      </Source>
     </Map>
   );
 }

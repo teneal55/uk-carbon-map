@@ -4,12 +4,15 @@
 
 An interactive map of the UK's electricity regions, showing when and where grid power is cleanest, and eventually cheapest.
 
+Northern Ireland is shown on the map but has no data, as it's on a separate grid from Great Britain.
+
 > **Status:** early work in progress. The Next.js app and base map are set up; data layers are coming next.
 
 ## So far
 
 - A Next.js (App Router) and TypeScript app
 - A full-screen, interactive Mapbox map centred on the UK
+- Electricity region outlines in `public/regions.geojson`, generated from NESO boundary data by a Python script. See `scripts/prepare_boundaries.py` for how to create the data yourself.
 
 ## Tech stack
 
