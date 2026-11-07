@@ -9,12 +9,44 @@ import type {
   PaddingOptions,
 } from 'mapbox-gl';
 
+// Colours inspired by Octopus Energy's dark purple and pink look. These are
+// approximations, not official brand values.
+const COLOURS = {
+  backdrop: '#180048', // deep purple: sea and everything outside the UK
+  region: '#5b3fb4', // mid purple: region fill until data colours arrive
+  border: '#ff71cf', // bubblegum pink: region outlines
+  noData: '#34246e', // muted purple: UK land with no grid data (Northern Ireland)
+};
+
+// Northern Ireland is part of the UK but runs on a separate grid, so there's no
+// carbon data for it. Draw it like the rest of the UK, but in a neutral colour
+// and outside the regions source so data styling never applies to it.
+const northernIrelandFill: FillLayerSpecification = {
+  id: 'northern-ireland-fill',
+  type: 'fill',
+  source: 'northern-ireland',
+  paint: {
+    'fill-color': COLOURS.noData,
+    'fill-opacity': 0.9,
+  },
+};
+
+const northernIrelandOutline: LineLayerSpecification = {
+  id: 'northern-ireland-outline',
+  type: 'line',
+  source: 'northern-ireland',
+  paint: {
+    'line-color': COLOURS.border,
+    'line-width': 1.2,
+  },
+};
+
 const regionFill: FillLayerSpecification = {
   id: 'regions-fill',
   type: 'fill',
   source: 'regions',
   paint: {
-    'fill-color': '#9ca3af',
+    'fill-color': COLOURS.region,
     'fill-opacity': 0.9,
   },
 };
@@ -24,8 +56,8 @@ const regionOutline: LineLayerSpecification = {
   type: 'line',
   source: 'regions',
   paint: {
-    'line-color': '#ffffff',
-    'line-width': 1,
+    'line-color': COLOURS.border,
+    'line-width': 1.2,
   },
 };
 
@@ -69,14 +101,21 @@ export default function MapView() {
       keyboard={false}
       projection="mercator"
     >
-      <Source id="uk-mask" type="geojson" data="/uk-mask.geojson">
+      {/* Each Source has a key matching its id. react-map-gl can't change a
+          source's id, so without keys, adding or reordering sources during a
+          hot reload makes React reuse the wrong one ("source id changed"). */}
+      <Source key="uk-mask" id="uk-mask" type="geojson" data="/uk-mask.geojson">
         <Layer
           id="uk-mask-fill"
           type="fill"
-          paint={{ 'fill-color': '#6b7280', 'fill-opacity': 0.6 }}
+          paint={{ 'fill-color': COLOURS.backdrop, 'fill-opacity': 0.85 }}
         />
       </Source>
-      <Source id="regions" type="geojson" data="/regions.geojson" promoteId="region_id">
+      <Source key="northern-ireland" id="northern-ireland" type="geojson" data="/northern-ireland.geojson">
+        <Layer {...northernIrelandFill} />
+        <Layer {...northernIrelandOutline} />
+      </Source>
+      <Source key="regions" id="regions" type="geojson" data="/regions.geojson" promoteId="region_id">
         <Layer {...regionFill} />
         <Layer {...regionOutline} />
       </Source>
