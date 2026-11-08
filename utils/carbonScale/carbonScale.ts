@@ -1,3 +1,4 @@
+import type { ExpressionSpecification } from 'mapbox-gl';
 import { CARBON_SCALE } from '@/styles/colours';
 
 export type CarbonStop = { value: number; colour: string };
@@ -25,4 +26,26 @@ export function carbonTicks(stops: CarbonStop[]): number[] {
   return Array.from({ length: TICK_COUNT }, (_, i) =>
     Math.round(low + ((high - low) * i) / (TICK_COUNT - 1)),
   );
+}
+
+/** The feature-state key each region's current intensity is stored under. */
+export const INTENSITY_STATE = 'intensity';
+
+/**
+ * Builds a Mapbox fill-color expression that colours each region by the
+ * intensity in its feature state (set with map.setFeatureState):
+ * - no value: `noDataColour`
+ * - otherwise: blended along `stops` (from carbonStops)
+ *
+ * Reading from feature state means playback only updates 14 numbers each
+ * frame, rather than replacing the whole expression.
+ */
+export function carbonFillColour(stops: CarbonStop[], noDataColour: string): ExpressionSpecification {
+  const intensity: ExpressionSpecification = ['coalesce', ['feature-state', INTENSITY_STATE], -1];
+  return [
+    'case',
+    ['<', intensity, 0],
+    noDataColour,
+    ['interpolate-lab', ['linear'], intensity, ...stops.flatMap((s) => [s.value, s.colour])],
+  ];
 }

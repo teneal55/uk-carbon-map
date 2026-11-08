@@ -1,19 +1,18 @@
 import { CARBON_GRADIENT_CSS, HATCH_CSS } from '@/styles/colours';
-import { carbonTicks, type CarbonStop } from '@/utils/carbonScale';
-import TimeControls, { type TimeControlsProps } from '@/components/TimeControlsView/TimeControls';
+import { carbonTicks, type CarbonStop } from '@/utils/carbonScale/carbonScale';
 
-type LegendProps = TimeControlsProps & {
+type LegendProps = {
   /** The carbon scale the map is using, from carbonStops. */
   stops: CarbonStop[];
 };
 
-/** The panel over the ocean: time controls (when there's a timeline) and the colour key. */
-export default function Legend({ stops, ...timeProps }: LegendProps) {
-  const { periods, index } = timeProps;
-
+/**
+ * The colour key, in the top right. On portrait screens the time panel spans
+ * the top, so the key moves to the bottom right.
+ */
+export default function Legend({ stops }: LegendProps) {
   return (
-    <div className="absolute bottom-6 left-6 w-72 space-y-3 rounded-lg bg-[#180048]/85 p-3 text-xs text-white ring-1 ring-white/15">
-      {periods.length > 1 && periods[index] && <TimeControls {...timeProps} />}
+    <div className="absolute right-6 bottom-6 w-72 landscape:top-6 landscape:bottom-auto rounded-lg bg-[#180048]/60 p-3 text-xs text-white ring-1 ring-white/15">
       <div>
         <p className="font-medium">Carbon intensity</p>
         <p className="text-white/70">Daily average grams of CO₂ per kWh, over the last year</p>

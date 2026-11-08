@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CARBON_SCALE } from '@/styles/colours';
-import { carbonStops, carbonTicks } from './carbonScale';
+import { INTENSITY_STATE, carbonFillColour, carbonStops, carbonTicks } from './carbonScale';
 
 describe('carbonStops', () => {
   it('places the colours from zero to the highest value', () => {
@@ -24,5 +24,20 @@ describe('carbonStops', () => {
 describe('carbonTicks', () => {
   it('spaces rounded values evenly across the scale', () => {
     expect(carbonTicks(carbonStops([388.5]))).toEqual([0, 97, 194, 291, 389]);
+  });
+});
+
+describe('carbonFillColour', () => {
+  const stops = carbonStops([60, 400]);
+
+  it('colours regions by the intensity in their feature state', () => {
+    const intensity = ['coalesce', ['feature-state', INTENSITY_STATE], -1];
+
+    expect(carbonFillColour(stops, '#000000')).toEqual([
+      'case',
+      ['<', intensity, 0],
+      '#000000',
+      ['interpolate-lab', ['linear'], intensity, ...stops.flatMap((s) => [s.value, s.colour])],
+    ]);
   });
 });
