@@ -11,15 +11,7 @@ environment and running the scripts.
   5. reprojects to WGS84 longitude/latitude (EPSG:4326), which Mapbox needs
   6. writes a small GeoJSON to public/regions.geojson
 
-To run:
-	1. download the 20240503 GeoJSON from
-		https://www.neso.energy/data-portal/gis-boundaries-gb-dno-license-areas
-	2. save it as data/raw/gb-dno-license-areas-20240503.geojson
-	3. run in virtual environment, from the repo root:
-		python3 -m venv .venv
-		source .venv/bin/activate
-		pip install geopandas
-		python scripts/prepare_boundaries.py
+See README for information on how to run.
 """
 
 import geopandas as gpd

@@ -12,6 +12,8 @@ Each run covers the 365 UK days up to and including yesterday:
 
 The regional endpoints only provide forecasts, even for past periods, so these
 are averages of forecast values. Uses only the Python standard library.
+
+See README for information on how to run.
 """
 
 import json

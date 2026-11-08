@@ -13,6 +13,7 @@ Northern Ireland is shown on the map but has no data, as it's on a separate grid
 - A Next.js (App Router) and TypeScript app
 - A full-screen, interactive Mapbox map centred on the UK
 - Electricity region outlines in `public/regions.geojson`, generated from NESO boundary data by a Python script. See `scripts/prepare_boundaries.py` for how to create the data yourself.
+- A year of daily average carbon intensity for each region in `data/daily-intensity.json`, from the [Carbon Intensity API](https://carbonintensity.org.uk), played on a timeline over the map
 
 ## Tech stack
 
@@ -42,6 +43,33 @@ Add your Mapbox token and Mapbox style url to `.env.local`:
 NEXT_PUBLIC_MAPBOX_TOKEN=pk.your_token_here
 NEXT_PUBLIC_MAPBOX_TOKEN=mapbox://style_url_here
 ```
+
+#### Generate data from python scripts
+
+The data files the app uses are already in the repo, so this is only needed to regenerate them. The scripts need Python 3.10 or later.
+
+Create a virtual environment once, from the repo root:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install geopandas
+```
+
+Then, with the virtual environment active:
+
+```bash
+# Region boundaries -> public/regions.geojson
+# First download the 20240503 GeoJSON from
+# https://www.neso.energy/data-portal/gis-boundaries-gb-dno-license-areas
+# and save it as data/raw/gb-dno-license-areas-20240503.geojson
+python scripts/prepare_boundaries.py
+
+# A year of daily average carbon intensity, up to yesterday -> data/daily-intensity.json
+python scripts/prepare_daily_intensity.py
+```
+
+The daily script downloads from the Carbon Intensity API and takes a few minutes.
 
 Then start the dev server:
 
