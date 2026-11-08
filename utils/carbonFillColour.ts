@@ -1,30 +1,34 @@
 import type { ExpressionSpecification } from 'mapbox-gl';
-import type { RegionIntensity } from '@/services/carbon';
-import { COLOURS } from '@/styles/colours';
-import { NEGLIGIBLE_BELOW, type CarbonStop } from './carbonScale';
+import type { CarbonStop } from './carbonScale';
 
 const MISSING = -1;
 
 /**
  * Builds a Mapbox fill-color expression that colours each feature by its
- * region's forecast intensity, looked up by the feature's `region_id`:
- * - no forecast: `noDataColour`
- * - below NEGLIGIBLE_BELOW: the negligible colour
+ * region's intensity, looked up by the feature's `region_id`:
+ * - no value: `noDataColour`
  * - otherwise: blended along `stops` (from carbonStops)
+ *
+ * `values[i]` is the intensity for `regionIds[i]`, or null if there's no data.
  */
 export function carbonFillColour(
-  regions: RegionIntensity[],
+  regionIds: number[],
+  values: (number | null)[],
   stops: CarbonStop[],
   noDataColour: string,
 ): string | ExpressionSpecification {
   // One label per region: Mapbox rejects duplicate labels in a match expression.
-  const forecasts = new Map(regions.map((r) => [r.regionid, r.intensity.forecast]));
-  if (forecasts.size === 0) return noDataColour;
+  const intensities = new Map<number, number>();
+  regionIds.forEach((id, i) => {
+    const value = values[i];
+    if (value != null) intensities.set(id, value);
+  });
+  if (intensities.size === 0) return noDataColour;
 
   const intensity: ExpressionSpecification = [
     'match',
     ['get', 'region_id'],
-    ...[...forecasts].flat(),
+    ...[...intensities].flat(),
     MISSING,
   ];
 
@@ -32,8 +36,6 @@ export function carbonFillColour(
     'case',
     ['<', intensity, 0],
     noDataColour,
-    ['<', intensity, NEGLIGIBLE_BELOW],
-    COLOURS.negligible,
     ['interpolate-lab', ['linear'], intensity, ...stops.flatMap((s) => [s.value, s.colour])],
   ];
 }

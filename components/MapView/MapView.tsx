@@ -6,7 +6,7 @@ import Map, { Layer, Source, type MapEvent, type MapMouseEvent } from 'react-map
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { FillLayerSpecification, LngLatBoundsLike, PaddingOptions } from 'mapbox-gl';
 
-import type { RegionalTimeline } from '@/services/carbon';
+import type { Timeline } from '@/types/timeline';
 import Legend from '@/components/LegendView/Legend';
 import { COLOURS } from '@/styles/colours';
 import {
@@ -40,11 +40,13 @@ function fitUk(e: MapEvent) {
   map.fitBounds(UK_BOUNDS, { padding: ukPadding(clientWidth, clientHeight), animate: false });
 }
 
-const PLAY_STEP_MS = 400; // time per half-hour step when playing
+// Time per day when playing: a year plays through in about 45 seconds.
+const PLAY_STEP_MS = 120;
 
-export default function MapView({ timeline }: { timeline: RegionalTimeline }) {
-  const { periods, nowIndex } = timeline;
-  const [index, setIndex] = useState(nowIndex);
+export default function MapView({ timeline }: { timeline: Timeline }) {
+  const { periods, regionIds, values } = timeline;
+  // Start at the first day, a year ago.
+  const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [hovered, setHovered] = useState<HoveredRegion | null>(null);
   // The hatch layer can only be added once its pattern image exists.
@@ -56,28 +58,31 @@ export default function MapView({ timeline }: { timeline: RegionalTimeline }) {
     fitUk(e);
   }
 
-  // While playing, step forward one half-hour at a time, looping at the end.
+  // While playing, step forward one day at a time. After the last day, stop and
+  // go back to the start rather than looping.
   useEffect(() => {
     if (!playing || periods.length < 2) return;
-    const timer = setInterval(() => setIndex((i) => (i + 1) % periods.length), PLAY_STEP_MS);
-    return () => clearInterval(timer);
-  }, [playing, periods.length]);
+    const timer = setTimeout(() => {
+      if (index >= periods.length - 1) {
+        setPlaying(false);
+        setIndex(0);
+      } else {
+        setIndex(index + 1);
+      }
+    }, PLAY_STEP_MS);
+    return () => clearTimeout(timer);
+  }, [playing, index, periods.length]);
 
-  const period = periods[index];
-  const regions = useMemo(() => period?.regions ?? [], [period]);
+  const row = useMemo(() => values[index] ?? [], [values, index]);
   // One scale for the whole timeline, so a colour means the same value at every
   // point on the slider.
   const stops = useMemo(
-    () => carbonStops(periods.flatMap((p) => p.regions.map((r) => r.intensity.forecast))),
-    [periods],
+    () => carbonStops(values.flat().filter((v): v is number => v !== null)),
+    [values],
   );
   const fillColour = useMemo(
-    () => carbonFillColour(regions, stops, COLOURS.noData),
-    [regions, stops],
-  );
-  const regionsById = useMemo(
-    () => new globalThis.Map(regions.map((r) => [r.regionid, r])),
-    [regions],
+    () => carbonFillColour(regionIds, row, stops, COLOURS.noData),
+    [regionIds, row, stops],
   );
 
   const regionFill: FillLayerSpecification = {
@@ -101,7 +106,7 @@ export default function MapView({ timeline }: { timeline: RegionalTimeline }) {
     );
   }
 
-  const hoveredData = hovered ? regionsById.get(hovered.id) : undefined;
+  const hoveredValue = hovered ? row[regionIds.indexOf(hovered.id)] : undefined;
 
   return (
     <div className="relative">
@@ -152,7 +157,6 @@ export default function MapView({ timeline }: { timeline: RegionalTimeline }) {
         stops={stops}
         periods={periods}
         index={index}
-        nowIndex={nowIndex}
         playing={playing}
         onIndexChange={(i) => {
           setPlaying(false);
@@ -167,9 +171,9 @@ export default function MapView({ timeline }: { timeline: RegionalTimeline }) {
           style={{ left: hovered.x + 14, top: hovered.y + 14 }}
         >
           <p className="font-medium">{hovered.name}</p>
-          {hoveredData ? (
+          {hoveredValue != null ? (
             <p className="text-white/80">
-              {hoveredData.intensity.forecast} gCO₂/kWh · {hoveredData.intensity.index}
+              {hoveredValue} gCO₂/kWh · daily average
             </p>
           ) : (
             <p className="text-white/80">No data</p>

@@ -2,22 +2,30 @@ export const COLOURS = {
   backdrop: '#180048',
   border: '#ff71cf',
   noData: '#34246e',
-  // The map's original region purple, for negligible carbon (see
-  // NEGLIGIBLE_BELOW in utils/carbonScale.ts).
-  negligible: '#5b3fb4',
 } as const;
 
-// Carbon intensity scale (gCO2/kWh): from purple, one step above the negligible
-// purple (so the two never look alike), to a saturated hot "danger" pink for the
-// most carbon-heavy regions. Each step is a little lighter and more saturated.
-// The top pink is slightly deeper and redder than the border pink, so region
-// borders stay visible even between two carbon-heavy regions.
-// utils/carbonScale.ts spreads the colours over the data's range.
-export const CARBON_COLOURS = ['#7760d4', '#9b57d6', '#be4bcb', '#df3db4', '#fe2992'] as const;
+// Carbon intensity scale (gCO2/kWh): from the map's original region purple at
+// zero to a saturated hot "danger" pink for the most carbon-heavy regions. Each
+// step is a little lighter and more saturated. The top pink is slightly deeper
+// and redder than the border pink, so region borders stay visible even between
+// two carbon-heavy regions.
+//
+// `at` is where each colour sits, from 0 (zero carbon) to 1 (the highest value
+// in the data). The purples cover most of the range and the pinks are kept for
+// the top end, so pink means genuinely high carbon.
+// utils/carbonScale.ts turns these into values.
+export const CARBON_SCALE = [
+  { colour: '#5b3fb4', at: 0 },
+  { colour: '#7760d4', at: 0.18 },
+  { colour: '#9b57d6', at: 0.38 },
+  { colour: '#be4bcb', at: 0.6 },
+  { colour: '#df3db4', at: 0.8 },
+  { colour: '#fe2992', at: 1 },
+] as const;
 
 /** The carbon scale as a CSS gradient, for the legend. */
-export const CARBON_GRADIENT_CSS = `linear-gradient(to right, ${CARBON_COLOURS.map(
-  (colour, i) => `${colour} ${(i / (CARBON_COLOURS.length - 1)) * 100}%`,
+export const CARBON_GRADIENT_CSS = `linear-gradient(to right, ${CARBON_SCALE.map(
+  ({ colour, at }) => `${colour} ${at * 100}%`,
 ).join(', ')})`;
 
 // Faint pink diagonal stripes over Northern Ireland, so it's obvious there's no

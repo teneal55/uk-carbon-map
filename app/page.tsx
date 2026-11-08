@@ -1,8 +1,9 @@
 import MapView from "@/components/MapView/MapView";
-import { getRegionalTimeline } from '@/services/carbon';
+import { getDailyTimeline } from '@/services/dailyIntensity';
 
-export default async function Home() {
-  const timeline = await getRegionalTimeline();
+export default function Home() {
+  // A year of daily averages, from data/daily-intensity.json.
+  const timeline = getDailyTimeline();
 
   return (
     <main className="flex-1">
