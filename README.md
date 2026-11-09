@@ -14,12 +14,14 @@ Northern Ireland is shown on the map but has no data, as it's on a separate grid
 - A full-screen, interactive Mapbox map centred on the UK
 - Electricity region outlines in `public/regions.geojson`, generated from NESO boundary data by a Python script. See `scripts/prepare_boundaries.py` for how to create the data yourself.
 - A year of daily average carbon intensity for each region in `data/daily-intensity.json`, from the [Carbon Intensity API](https://carbonintensity.org.uk), played on a timeline over the map
+- A chart of the 7-day rolling average across the regions, with the range from the cleanest to the dirtiest region and each season's average. It draws in as the year plays, and the end of its line is the timeline's slider
 
 ## Tech stack
 
 - [Next.js](https://nextjs.org) (App Router)
 - TypeScript
 - [Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/) via [react-map-gl](https://visgl.github.io/react-map-gl/)
+- Python for collecting and preparing the data, in `scripts/`
 
 ## Getting started
 
