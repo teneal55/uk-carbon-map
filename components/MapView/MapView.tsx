@@ -199,6 +199,7 @@ export default function MapView({ timeline }: { timeline: Timeline }) {
         touchPitch={false}
         boxZoom={false}
         keyboard={false}
+        cursor="default"
         projection="mercator"
       >
         {/* Each Source has a key matching its id. react-map-gl can't change a
