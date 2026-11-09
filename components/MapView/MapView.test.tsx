@@ -25,7 +25,7 @@ describe('MapView', () => {
     const customStyle = 'mapbox://styles/test-user/test-style';
     vi.stubEnv('NEXT_PUBLIC_MAPBOX_STYLE', customStyle);
 
-    render(<MapView />);
+    render(<MapView timeline={{ periods: [], regionIds: [], values: [] }} />);
 
     const map = screen.getByTestId('map');
     expect(map).toBeInTheDocument();

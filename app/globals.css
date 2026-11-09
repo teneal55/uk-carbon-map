@@ -24,3 +24,80 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/*
+ * The day slider in components/TimeControlsView/TimeControls.tsx. Browsers'
+ * built-in range inputs have a grey track and border that accent-color can't
+ * change, so this draws its own: pink up to the selected day (--progress, set
+ * by the component), the legend panel's see-through purple for the rest, and a
+ * pink handle.
+ *
+ * It's here rather than in a CSS module because the Tailwind rule in
+ * next.config.ts treats every .css file as global, so .module.css imports
+ * don't return class names.
+ */
+.day-slider {
+  --track: rgb(24 0 72 / 0.6); /* #180048 at 60%, as the legend's background */
+  --fill: #ff71cf;
+  appearance: none;
+  height: 1.25rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.day-slider:focus {
+  outline: none;
+}
+
+/* Chrome, Safari, Edge */
+.day-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border: none;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--fill) var(--progress),
+    var(--track) var(--progress)
+  );
+}
+
+.day-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -5px; /* centres the handle on the 6px track */
+  border: none;
+  border-radius: 9999px;
+  background: var(--fill);
+}
+
+/* Firefox */
+.day-slider::-moz-range-track {
+  height: 6px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--track);
+}
+
+.day-slider::-moz-range-progress {
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--fill);
+}
+
+.day-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--fill);
+}
+
+/* No border, but keyboard users still see which control has focus. */
+.day-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgb(255 113 207 / 0.35);
+}
+
+.day-slider:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 4px rgb(255 113 207 / 0.35);
+}
