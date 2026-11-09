@@ -10,7 +10,7 @@ Northern Ireland is shown on the map but has no data, as it's on a separate grid
 
 ## So far
 
-- A Next.js (App Router) and TypeScript app
+- A Next.js (App Router) and TypeScript app with Tailwind CSS
 - A full-screen, interactive Mapbox map centred on the UK
 - Electricity region outlines in `public/regions.geojson`, generated from NESO boundary data by a Python script. See `scripts/prepare_boundaries.py` for how to create the data yourself.
 - A year of daily average carbon intensity for each region in `data/daily-intensity.json`, from the [Carbon Intensity API](https://carbonintensity.org.uk), played on a timeline over the map

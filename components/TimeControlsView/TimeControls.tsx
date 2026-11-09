@@ -1,5 +1,6 @@
 import { useMemo, type CSSProperties, type ReactNode } from 'react';
 import { SLIDER_THUMB_PX as THUMB_PX } from '@/styles/layout';
+import { reveal } from '@/styles/reveal';
 import type { TimelinePeriod } from '@/types/timeline';
 import { monthLabels, ordinalDate } from '@/utils/dates/dates';
 
@@ -16,6 +17,8 @@ export type TimeControlsProps = {
   onTogglePlay: () => void;
   /** The 7-day average carbon intensity at `position`, shown large under the date. */
   value: number | null;
+  /** While the map loads, only the date and value show; the rest fades in after. */
+  loading?: boolean;
   /** Shown between the date and the slider, e.g. the chart the slider is the x-axis of. */
   children?: ReactNode;
 };
@@ -28,6 +31,7 @@ export default function TimeControls({
   onPositionChange,
   onTogglePlay,
   value,
+  loading = false,
   children,
 }: TimeControlsProps) {
   const lastDay = periods.length - 1;
@@ -88,7 +92,7 @@ export default function TimeControls({
             aria-label={playing ? 'Pause' : atEnd ? 'Replay the year' : 'Play through the year'}
             // Same see-through purple as the legend panel. Smaller on phones,
             // like the number.
-            className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#180048]/60 text-xl hover:bg-[#180048]/85 max-sm:h-10 max-sm:w-10 max-sm:rounded-lg max-sm:text-base"
+            className={`${reveal(!loading)} grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#180048]/60 text-xl hover:bg-[#180048]/85 max-sm:h-10 max-sm:w-10 max-sm:rounded-lg max-sm:text-base`}
           >
             {/* The ↻ character draws smaller and lower than ▶ and ❚❚, so it's set
                 larger and nudged up to sit in the middle of the button. */}
@@ -102,11 +106,11 @@ export default function TimeControls({
           </button>
         </div>
       </div>
-      {children && <div className="mt-6 flex min-h-0 flex-1 flex-col">{children}</div>}
+      {children && <div className={`${reveal(!loading)} mt-6 flex min-h-0 flex-1 flex-col`}>{children}</div>}
       {/* On landscape screens the chart's pink line is the slider, so this row
           is just the months. Portrait screens hide the chart, so they keep a
           plain slider above the months. */}
-      <div className="mt-3">
+      <div className={`${reveal(!loading)} mt-3`}>
         <input
           type="range"
           min={0}

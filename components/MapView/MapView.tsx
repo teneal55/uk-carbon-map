@@ -17,8 +17,9 @@ import type { Timeline } from '@/types/timeline';
 import Legend from '@/components/LegendView/Legend';
 import TimeControls from '@/components/TimeControlsView/TimeControls';
 import IntensityChart from '@/components/IntensityChartView/IntensityChart';
-import { COLOURS } from '@/styles/colours';
+import { COLOURS, MASK_OPACITY, OCEAN } from '@/styles/colours';
 import { OCEAN_SHARE, UK_PADDING_PX } from '@/styles/layout';
+import { reveal } from '@/styles/reveal';
 import {
   addHatchPattern,
   northernIrelandFill,
@@ -57,6 +58,9 @@ function fitUk(e: MapEvent) {
   map.fitBounds(UK_BOUNDS, { padding: ukPadding(clientWidth, clientHeight), animate: false });
 }
 
+// The shortest time the loading screen shows for, in milliseconds.
+const MIN_LOADING_MS = 1000;
+
 // Time per day when playing: a year plays through in about 45 seconds.
 const PLAY_STEP_MS = 120;
 
@@ -77,6 +81,18 @@ export default function MapView({ timeline }: { timeline: Timeline }) {
   const [hatchReady, setHatchReady] = useState(false);
   // Feature state can only be set once the regions source has loaded.
   const [regionsReady, setRegionsReady] = useState(false);
+  // Until the map has drawn everything once (fitted, coloured and hatched),
+  // a loading screen covers it, so it doesn't appear in pieces.
+  const [mapReady, setMapReady] = useState(false);
+  // The loading screen also stays up for at least MIN_LOADING_MS, so a fast
+  // load still feels deliberate rather than a flicker.
+  const [minTimeDone, setMinTimeDone] = useState(false);
+  const loaded = mapReady && minTimeDone;
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMinTimeDone(true), MIN_LOADING_MS);
+    return () => clearTimeout(timer);
+  }, []);
   const mapRef = useRef<MapRef>(null);
 
   // The nearest whole day, for the date label and tooltip.
@@ -95,6 +111,13 @@ export default function MapView({ timeline }: { timeline: Timeline }) {
 
   function handleSourceData(e: MapSourceDataEvent) {
     if (e.sourceId === 'regions' && e.isSourceLoaded) setRegionsReady(true);
+  }
+
+  // Mapbox goes idle when it has nothing left to load or draw. Once the
+  // regions and hatching are in, the next idle means the finished map is on
+  // screen. (Setting the regions' values triggers a redraw, then another idle.)
+  function handleIdle() {
+    if (regionsReady && hatchReady) setMapReady(true);
   }
 
   // While playing, move forward smoothly, PLAY_STEP_MS per day, once per
@@ -187,6 +210,7 @@ export default function MapView({ timeline }: { timeline: Timeline }) {
         onLoad={handleLoad}
         onResize={fitUk}
         onSourceData={handleSourceData}
+        onIdle={handleIdle}
         interactiveLayerIds={['regions-fill']}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setHovered(null)}
@@ -209,7 +233,7 @@ export default function MapView({ timeline }: { timeline: Timeline }) {
           <Layer
             id="uk-mask-fill"
             type="fill"
-            paint={{ 'fill-color': COLOURS.backdrop, 'fill-opacity': 0.85 }}
+            paint={{ 'fill-color': COLOURS.backdrop, 'fill-opacity': MASK_OPACITY }}
           />
         </Source>
         <Source key="northern-ireland" id="northern-ireland" type="geojson" data="/northern-ireland.geojson">
@@ -223,6 +247,20 @@ export default function MapView({ timeline }: { timeline: Timeline }) {
           <Layer {...regionOutline} />
         </Source>
       </Map>
+
+      {/* The loading screen: the ocean's colour over the map, with a spinner.
+          The date and value above it show straight away, and everything else
+          fades in with the map. */}
+      <div
+        role="status"
+        aria-label="Loading the map"
+        className={`absolute inset-0 grid place-items-center transition-opacity duration-500 ${loaded ? 'pointer-events-none opacity-0' : ''}`}
+        style={{ background: OCEAN }}
+      >
+        {!loaded && (
+          <span className="h-16 w-16 animate-spin rounded-full border-[6px] border-white/15 border-t-[#ff71cf]" />
+        )}
+      </div>
 
       {periods.length > 1 && (
         // The time controls and chart share a column over the ocean, so the
@@ -240,6 +278,7 @@ export default function MapView({ timeline }: { timeline: Timeline }) {
             position={position}
             playing={playing}
             value={seriesAt(averageSeries, position)}
+            loading={!loaded}
             onPositionChange={pickDay}
             onTogglePlay={() => {
               if (playing) {
@@ -267,7 +306,9 @@ export default function MapView({ timeline }: { timeline: Timeline }) {
         </div>
       )}
 
-      <Legend stops={stops} />
+      <div className={reveal(loaded)}>
+        <Legend stops={stops} />
+      </div>
 
       {hovered && (
         <div
