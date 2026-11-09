@@ -6,8 +6,6 @@ An interactive map of the UK's electricity regions, showing when and where grid 
 
 Northern Ireland is shown on the map but has no data, as it's on a separate grid from Great Britain.
 
-> **Status:** early work in progress. The Next.js app and base map are set up; data layers are coming next.
-
 ## So far
 
 - A Next.js (App Router) and TypeScript app with Tailwind CSS
