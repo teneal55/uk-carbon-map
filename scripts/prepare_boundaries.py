@@ -1,9 +1,6 @@
 """This script converts GeoJSON data from National Grid (EPSG:27700) eastings and northings
 to WGS84 longitude and latitude in degrees ready for drawing regions on mapbox map
 
-See "Generate data from python scripts" in README.md for setting up the virtual
-environment and running the scripts.
-
   1. reads the raw NESO GeoJSON (British National Grid, EPSG:27700)
   2. adds the IDs the app needs (Carbon Intensity API region id, Agile letter)
   3. drops tiny islands and rocks that are invisible at GB zoom
@@ -11,7 +8,8 @@ environment and running the scripts.
   5. reprojects to WGS84 longitude/latitude (EPSG:4326), which Mapbox needs
   6. writes a small GeoJSON to public/regions.geojson
 
-See README for information on how to run.
+See "Generate data from python scripts" in README.md for setting up the virtual
+environment and running the scripts.
 """
 
 import geopandas as gpd

@@ -1,8 +1,5 @@
 """Build a year of daily average carbon intensity for each GB electricity region.
 
-See "Generate data from python scripts" in README.md for setting up the virtual
-environment and running the scripts.
-
 Each run covers the 365 UK days up to and including yesterday:
   1. fetches the half-hourly regional forecasts from the Carbon Intensity API,
     in chunks of 13 days, as this is max period from API
@@ -13,7 +10,8 @@ Each run covers the 365 UK days up to and including yesterday:
 The regional endpoints only provide forecasts, even for past periods, so these
 are averages of forecast values. Uses only the Python standard library.
 
-See README for information on how to run.
+See "Generate data from python scripts" in README.md for setting up the virtual
+environment and running the scripts.
 """
 
 import json
