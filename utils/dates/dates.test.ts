@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { TimelinePeriod } from '@/types/timeline';
-import { monthLabels, ordinalDate } from './dates';
+import { monthLabels, ordinalDate, seasonSpans } from './dates';
 
 describe('ordinalDate', () => {
   it.each([
@@ -57,5 +57,18 @@ describe('monthLabels', () => {
 
   it('returns nothing for a timeline too short for a slider', () => {
     expect(monthLabels(days('2025-11-08T00:00Z', 1))).toEqual([]);
+  });
+});
+
+describe('seasonSpans', () => {
+  it('splits a year of days into meteorological seasons, with autumn at both ends', () => {
+    // 8 Nov 2025 to 7 Nov 2026, like the app's data.
+    const spans = seasonSpans(days('2025-11-08T00:00Z', 365));
+    expect(spans.map((s) => s.season)).toEqual(['Autumn', 'Winter', 'Spring', 'Summer', 'Autumn']);
+    // Winter starts on 1 December, 23 days in, and the spans cover every day.
+    expect(spans[1].start).toBe(23);
+    expect(spans[0].start).toBe(0);
+    expect(spans.at(-1)?.end).toBe(364);
+    spans.slice(1).forEach((s, i) => expect(s.start).toBe(spans[i].end + 1));
   });
 });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 
 import Map, {
   Layer,
@@ -16,8 +16,9 @@ import type { FillLayerSpecification, LngLatBoundsLike, PaddingOptions } from 'm
 import type { Timeline } from '@/types/timeline';
 import Legend from '@/components/LegendView/Legend';
 import TimeControls from '@/components/TimeControlsView/TimeControls';
+import IntensityChart from '@/components/IntensityChartView/IntensityChart';
 import { COLOURS } from '@/styles/colours';
-import { OCEAN_SHARE } from '@/styles/layout';
+import { OCEAN_SHARE, UK_PADDING_PX } from '@/styles/layout';
 import {
   addHatchPattern,
   northernIrelandFill,
@@ -27,18 +28,26 @@ import {
 } from '@/styles/mapLayers';
 import { INTENSITY_STATE, carbonFillColour, carbonStops } from '@/utils/carbonScale/carbonScale';
 import { valuesAt } from '@/utils/valuesAt/valuesAt';
+import { SMOOTHING_DAYS, dailyAverage, rollingAverage, seriesAt } from '@/utils/chart/chart';
 import type { HoveredRegion } from '@/types/map';
 
 // Constants
 const UK_BOUNDS: LngLatBoundsLike = [-8.7, 49.9, 1.8, 60.9];
-const UK_PADDING_PX = 60; // space between the UK and the screen edges
+
+// Large phones held upright (from this width up to 640px) leave more space
+// under the UK. The UK fills a phone's width, so the map centres it in the
+// height left over: it only rises by half of the extra space added here.
+const LARGE_PHONE_MIN_WIDTH_PX = 360;
+const LARGE_PHONE_BOTTOM_PX = 130;
 
 // Space to leave around the UK. On landscape screens a wide left margin pushes
 // the UK to the right, leaving ocean on the left. Portrait screens are too
 // narrow for that, so the UK stays centred.
 function ukPadding(width: number, height: number): PaddingOptions {
   const left = width > height ? Math.max(UK_PADDING_PX, width * OCEAN_SHARE) : UK_PADDING_PX;
-  return { top: UK_PADDING_PX, bottom: UK_PADDING_PX, right: UK_PADDING_PX, left };
+  const largePhone = height > width && width >= LARGE_PHONE_MIN_WIDTH_PX && width < 640;
+  const bottom = largePhone ? LARGE_PHONE_BOTTOM_PX : UK_PADDING_PX;
+  return { top: UK_PADDING_PX, bottom, right: UK_PADDING_PX, left };
 }
 
 // The map can't be moved, so refit the UK whenever the screen size changes.
@@ -114,6 +123,8 @@ export default function MapView({ timeline }: { timeline: Timeline }) {
 
   // Each region's value at the current position, blended between days.
   const blended = useMemo(() => valuesAt(values, position), [values, position]);
+  // The 7-day average across regions, as the chart's pink line, for the heading.
+  const averageSeries = useMemo(() => rollingAverage(dailyAverage(values), SMOOTHING_DAYS), [values]);
 
   // Give each region its value as feature state, which the fill colour reads.
   useEffect(() => {
@@ -154,6 +165,16 @@ export default function MapView({ timeline }: { timeline: Timeline }) {
   }
 
   const hoveredValue = hovered ? values[day]?.[regionIds.indexOf(hovered.id)] : undefined;
+  // The region hovered on the map, picked out in the chart.
+  const hoveredIndex = hovered ? regionIds.indexOf(hovered.id) : -1;
+  const highlightedRegion = hovered && hoveredIndex >= 0 ? { index: hoveredIndex, name: hovered.name } : null;
+
+  // Picking a day, on the chart or the portrait slider, pauses playback and
+  // snaps to a whole day.
+  function pickDay(p: number) {
+    setPlaying(false);
+    moveTo(Math.round(p));
+  }
 
   return (
     <div className="relative">
@@ -203,26 +224,46 @@ export default function MapView({ timeline }: { timeline: Timeline }) {
       </Map>
 
       {periods.length > 1 && (
-        <TimeControls
-          periods={periods}
-          position={position}
-          playing={playing}
-          onPositionChange={(p) => {
-            // Dragging pauses playback and snaps to a whole day.
-            setPlaying(false);
-            moveTo(Math.round(p));
-          }}
-          onTogglePlay={() => {
-            if (playing) {
-              // Pausing snaps to the nearest whole day.
-              moveTo(Math.min(Math.round(positionRef.current), lastDay));
-            } else if (positionRef.current >= lastDay) {
-              // At the end, the button replays from the start.
-              moveTo(0);
-            }
-            setPlaying(!playing);
-          }}
-        />
+        // The time controls and chart share a column over the ocean, so the
+        // slider is the chart's x-axis. On landscape screens it reaches 50% of
+        // the way across (the UK is fitted to the right, and below the top
+        // band its west coast starts at about 53% on laptop-sized screens),
+        // and stretches down to the UK's southern tip, the chart taking up
+        // whatever height is left.
+        <div
+          style={{ '--uk-padding': `${UK_PADDING_PX}px` } as CSSProperties}
+          className="absolute top-6 right-6 left-6 landscape:right-auto landscape:bottom-(--uk-padding) landscape:w-[calc(50vw-3rem)]"
+        >
+          <TimeControls
+            periods={periods}
+            position={position}
+            playing={playing}
+            value={seriesAt(averageSeries, position)}
+            onPositionChange={pickDay}
+            onTogglePlay={() => {
+              if (playing) {
+                // Pausing snaps to the nearest whole day.
+                moveTo(Math.min(Math.round(positionRef.current), lastDay));
+              } else if (positionRef.current >= lastDay) {
+                // At the end, the button replays from the start.
+                moveTo(0);
+              }
+              setPlaying(!playing);
+            }}
+          >
+            {/* The chart sits between the date and the slider. Portrait screens
+                have no ocean beside the UK to put it in. */}
+            <div className="hidden min-h-0 flex-1 landscape:flex">
+              <IntensityChart
+                periods={periods}
+                values={values}
+                position={position}
+                highlight={highlightedRegion}
+                onPositionChange={pickDay}
+              />
+            </div>
+          </TimeControls>
+        </div>
       )}
 
       <Legend stops={stops} />
