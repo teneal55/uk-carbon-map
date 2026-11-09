@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { CARBON_GRADIENT_CSS, HATCH_CSS } from '@/styles/colours';
 import { carbonTicks, type CarbonStop } from '@/utils/carbonScale/carbonScale';
 
@@ -10,7 +11,7 @@ type LegendProps = {
  * The colour key, in the top right. On portrait screens the time panel spans
  * the top, so the key moves to the bottom right.
  */
-export default function Legend({ stops }: LegendProps) {
+function Legend({ stops }: LegendProps) {
   return (
     <div className="absolute right-6 bottom-6 w-72 landscape:top-6 landscape:bottom-auto rounded-lg bg-[#180048]/60 p-3 text-xs text-white ring-1 ring-white/15 max-sm:px-3 max-sm:py-2 max-sm:text-[10px] max-sm:leading-tight">
       <div>
@@ -34,3 +35,6 @@ export default function Legend({ stops }: LegendProps) {
     </div>
   );
 }
+
+// Memoised: its stops never change, so it isn't re-rendered on every frame of playback.
+export default memo(Legend);

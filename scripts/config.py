@@ -5,7 +5,7 @@ RAW_PATH = ROOT / "data/raw/gb-dno-license-areas-20240503.geojson"
 OUT_PATH = ROOT / "public/regions.geojson"
 
 SIMPLIFY_TOLERANCE_M = 500  # max distance a simplified line may move, in metres
-MIN_PART_AREA_KM2 = 2  # drop island/rock parts smaller than this
+MIN_PART_AREA_KM2 = 100  # drop islands smaller than this, incl. the Isles of Scilly (96 km² with surrounding sea)
 
 # The raw file's "Name" column holds the GSP group letter (e.g. "_A"), which is
 # also the Agile tariff region letter. Map it to the Carbon Intensity API's

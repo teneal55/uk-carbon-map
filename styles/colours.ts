@@ -4,6 +4,26 @@ export const COLOURS = {
   noData: '#34246e',
 } as const;
 
+/** How opaque the backdrop overlay over everything outside the UK is. */
+export const MASK_OPACITY = 0.85;
+
+/** The water colour of the Mapbox style (Mapbox Light: hsl(220, 1%, 86%)). */
+const STYLE_WATER = '#dbdbdc';
+
+/**
+ * The colour the ocean actually shows: the backdrop overlay with the style's
+ * water showing through it. The loading screen uses this, so nothing changes
+ * colour when it fades out to the map. Update STYLE_WATER if the style changes.
+ */
+export const OCEAN = mixHex(COLOURS.backdrop, STYLE_WATER, MASK_OPACITY);
+
+/** `top` laid over `bottom` at `opacity`, as a "#rrggbb" colour. */
+function mixHex(top: string, bottom: string, opacity: number): string {
+  const a = hexToRgb(top);
+  const b = hexToRgb(bottom);
+  return `#${a.map((v, i) => Math.round(v * opacity + b[i] * (1 - opacity)).toString(16).padStart(2, '0')).join('')}`;
+}
+
 // Carbon intensity scale (gCO2/kWh): from the map's original region purple at
 // zero to a saturated hot "danger" pink for the most carbon-heavy regions. Each
 // step is a little lighter and more saturated. The top pink is slightly deeper
