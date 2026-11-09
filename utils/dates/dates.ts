@@ -39,6 +39,38 @@ export type MonthLabel = {
   position: number;
 };
 
+export type Season = 'Winter' | 'Spring' | 'Summer' | 'Autumn';
+
+// Meteorological seasons, by month (1-12): winter is December to February, and so on.
+const SEASON_BY_MONTH: Season[] = [
+  'Winter', 'Winter', 'Spring', 'Spring', 'Spring', 'Summer',
+  'Summer', 'Summer', 'Autumn', 'Autumn', 'Autumn', 'Winter',
+];
+
+export type SeasonSpan = {
+  season: Season;
+  /** Index of the first day in this stretch of the season. */
+  start: number;
+  /** Index of the last day. */
+  end: number;
+};
+
+/**
+ * Each stretch of consecutive days in the same meteorological season. A year
+ * that doesn't start on a season boundary has the same season at both ends
+ * (e.g. autumn), as two separate stretches.
+ */
+export function seasonSpans(periods: TimelinePeriod[]): SeasonSpan[] {
+  const spans: SeasonSpan[] = [];
+  periods.forEach((p, i) => {
+    const season = SEASON_BY_MONTH[Number(monthNumber.format(new Date(p.from))) - 1];
+    const span = spans.at(-1);
+    if (span?.season === season) span.end = i;
+    else spans.push({ season, start: i, end: i });
+  });
+  return spans;
+}
+
 /** A label for each month on a timeline of days, placed under the middle of that month. */
 export function monthLabels(periods: TimelinePeriod[], minDays = MIN_DAYS): MonthLabel[] {
   if (periods.length < 2) return [];
