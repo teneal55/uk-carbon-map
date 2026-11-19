@@ -1,11 +1,17 @@
 """Build a year of daily average carbon intensity for each GB electricity region.
 
-Each run covers the 365 UK days up to and including yesterday:
-  1. fetches the half-hourly regional forecasts from the Carbon Intensity API,
-    in chunks of 13 days, as this is max period from API
-  2. groups the half hour readings into UK days (midnight to midnight)
-  3. averages each region's half-hours for each day
-  4. writes data/daily-intensity.json for the app
+The output covers the 365 UK days up to and including yesterday. Each run:
+  1. reads the existing data/daily-intensity.json, if there is one, and keeps
+    the days in the window that already have a value for every region
+  2. fetches the half-hourly regional forecasts for the other days from the
+    Carbon Intensity API, in chunks of 13 days, as this is max period from API
+    (usually just yesterday, so a single request)
+  3. groups the half hour readings into UK days (midnight to midnight)
+  4. averages each region's half-hours for each day
+  5. drops days older than the window and writes data/daily-intensity.json
+
+Pass --full to ignore the existing file and download the whole year again,
+e.g. to pick up any past values the API has revised.
 
 The regional endpoints only provide forecasts, even for past periods, so these
 are averages of forecast values. Uses only the Python standard library.
@@ -14,6 +20,7 @@ See "Generate data from python scripts" in README.md for setting up the virtual
 environment and running the scripts.
 """
 
+import argparse
 import json
 import time
 import urllib.error
@@ -89,14 +96,57 @@ def fetch_half_hours(start: datetime, end: datetime) -> dict[tuple[datetime, int
   return readings
 
 
+def load_existing() -> dict[date, list[float | None]]:
+  """The complete days in the current output file, keyed by date. Empty if there's
+  no usable file, so everything is fetched."""
+  if not OUT_PATH.exists():
+    return {}
+  try:
+    existing = json.loads(OUT_PATH.read_text())
+    if existing["regionIds"] != REGION_IDS:
+      print("Existing file has different regions; fetching everything")
+      return {}
+    return {
+      date.fromisoformat(period["date"]): row
+      for period, row in zip(existing["periods"], existing["values"], strict=True)
+      if None not in row  # refetch days with a missing region
+    }
+  except (json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
+    print(f"Couldn't read existing {OUT_PATH.relative_to(ROOT)} ({error}); fetching everything")
+    return {}
+
+
+def runs_of_days(days: list[date]) -> list[tuple[date, date]]:
+  """Group sorted days into (first, last) runs of consecutive days."""
+  runs: list[tuple[date, date]] = []
+  for day in days:
+    if runs and day == runs[-1][1] + timedelta(days=1):
+      runs[-1] = (runs[-1][0], day)
+    else:
+      runs.append((day, day))
+  return runs
+
+
 def main() -> None:
+  parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+  parser.add_argument("--full", action="store_true", help="ignore the existing file and download the whole year")
+  args = parser.parse_args()
+
   end_day = datetime.now(UK).date() - timedelta(days=1)  # yesterday, the last full UK day
   start_day = end_day - timedelta(days=DAYS - 1)
   days = [start_day + timedelta(days=i) for i in range(DAYS)]
-  start, end = uk_midnight_utc(start_day), uk_midnight_utc(end_day + timedelta(days=1))
   print(f"Building daily averages for {start_day} to {end_day} (UK days)")
 
-  readings = fetch_half_hours(start, end)
+  known = {} if args.full else load_existing()
+  to_fetch = [day for day in days if day not in known]
+  if not to_fetch:
+    print("Every day is already in the file; nothing to fetch")
+    return
+  print(f"{len(days) - len(to_fetch)} days already in the file; fetching {len(to_fetch)}")
+
+  readings: dict[tuple[datetime, int], float] = {}
+  for first, last in runs_of_days(to_fetch):
+    readings |= fetch_half_hours(uk_midnight_utc(first), uk_midnight_utc(last + timedelta(days=1)))
 
   # Group each region's half-hours into UK days.
   by_day: dict[tuple[date, int], list[float]] = defaultdict(list)
@@ -106,8 +156,11 @@ def main() -> None:
   periods, values, incomplete = [], [], []
   for day in days:
     day_start, day_end = uk_midnight_utc(day), uk_midnight_utc(day + timedelta(days=1))
-    expected = (day_end - day_start) // HALF_HOUR  # 46, 48 or 50
     periods.append({"date": day.isoformat(), "from": api_time(day_start), "to": api_time(day_end)})
+    if day in known:
+      values.append(known[day])
+      continue
+    expected = (day_end - day_start) // HALF_HOUR  # 46, 48 or 50
     row = []
     for region_id in REGION_IDS:
       half_hours = by_day.get((day, region_id), [])

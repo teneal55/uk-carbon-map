@@ -71,7 +71,7 @@ python scripts/prepare_boundaries.py
 python scripts/prepare_daily_intensity.py
 ```
 
-The daily script downloads from the Carbon Intensity API and takes a few minutes.
+The daily script downloads from the Carbon Intensity API. It keeps the days already in `data/daily-intensity.json` and only fetches the ones that are missing, so a daily run takes a few seconds. Add `--full` to download the whole year again (a few minutes), for example to pick up any past values the API has revised.
 
 Then start the dev server:
 
@@ -100,3 +100,9 @@ The app is deployed on [Vercel](https://vercel.com). The same enviroment variabl
 
 - **Production:** every merge to `main` deploys automatically to the live site.
 - **Previews:** every pushed branch and pull request gets its own preview URL, so changes can be checked on a real deployment before merging.
+
+### Automatic data updates
+
+[`.github/workflows/update-data.yml`](.github/workflows/update-data.yml) runs `scripts/prepare_daily_intensity.py` every morning at 05:30 UTC and commits the new `data/daily-intensity.json` to `main`. That push makes Vercel redeploy, so the live site always runs up to yesterday. It can also be run by hand from the repo's **Actions** tab (**Update daily intensity data → Run workflow**).
+
+Because `main` is protected, the workflow pushes with a token stored as the `DATA_PUSH_TOKEN` repository secret.
